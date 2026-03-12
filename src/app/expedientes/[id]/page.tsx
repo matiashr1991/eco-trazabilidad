@@ -107,7 +107,10 @@ export default async function ExpedienteDetailPage({
   const pendingToReceive =
     canMove &&
     expediente.custodyStatus === CustodyStatus.IN_INTERNAL_TRANSIT &&
-    expediente.internalDispatches.some((d) => d.status === "PENDING" && canOperateArea(user, d.toInternalNodeId));
+    expediente.internalDispatches.some(
+      (d: { status: string; toInternalNodeId: string }) =>
+        d.status === "PENDING" && canOperateArea(user, d.toInternalNodeId)
+    );
 
   const canReturnExternal =
     canMove &&
@@ -313,7 +316,7 @@ export default async function ExpedienteDetailPage({
                 </tr>
               </thead>
               <tbody>
-                {expediente.internalDispatches.map((mov) => (
+                {expediente.internalDispatches.map((mov: any) => (
                   <tr key={`int-${mov.id}`}>
                     <td>
                       <span className={mov.status === "RECEIVED" ? "badge ok" : "badge warn"}>
@@ -329,7 +332,7 @@ export default async function ExpedienteDetailPage({
                     <td>{formatDate(mov.receivedAt ?? mov.dispatchedAt)}</td>
                   </tr>
                 ))}
-                {expediente.externalTransfers.map((mov) => (
+                {expediente.externalTransfers.map((mov: any) => (
                   <tr key={`ext-${mov.id}`}>
                     <td>
                       <span className={mov.status === "RETURNED" ? "badge ok" : "badge danger"}>
