@@ -1,4 +1,4 @@
-﻿# Subsistema de Trazabilidad de Expedientes Fisicos (MVP)
+# Subsistema de Trazabilidad de Expedientes Fisicos (MVP)
 
 Aplicacion web en Next.js + PostgreSQL para rastrear custodia fisica de expedientes con flujo interno y salidas externas.
 
@@ -8,7 +8,7 @@ Incluye:
 - autenticacion por usuario/contrasena y sesion por cookie segura;
 - RBAC basico (`ADMIN`, `AREA_MANAGER`, `AREA_OPERATOR`);
 - alta de expediente con QR unico;
-- pantalla de escaneo QR con camara (`/scan`);
+- pantalla de escaneo QR con camara (`/qr-scanner`);
 - modo operativo movil simplificado (`/mobile`) para recibir/despachar;
 - despacho interno y recepcion interna;
 - salida externa y reingreso;
@@ -67,14 +67,7 @@ npm run dev -- --hostname 0.0.0.0 --port 3000
 
 2. En la PC obtener IP local (ej. `192.168.0.25`) y abrir desde el celu:
    `http://192.168.0.25:3000`
-3. El escaneo en `/scan` requiere permisos de camara del navegador. En algunos navegadores moviles puede requerir HTTPS.
-
-## Usuarios de prueba
-
-- `admin` / `admin123`
-- `dga` / `dga123`
-- `patrimonio` / `patrimonio123`
-- `juridicos-consulta` / `consulta123`
+3. El escaneo en `/qr-scanner` requiere permisos de camara del navegador. En algunos navegadores moviles puede requerir HTTPS.
 
 ## Estructura relevante
 

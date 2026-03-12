@@ -1,4 +1,4 @@
-﻿import { randomBytes, scryptSync } from "crypto";
+import { randomBytes, scryptSync } from "crypto";
 import { PrismaClient, UserRole, CustodyStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -141,11 +141,7 @@ async function main() {
     });
   }
 
-  console.log("Seed completado. Usuarios de prueba:");
-  console.log("admin / admin123");
-  console.log("dga / dga123");
-  console.log("patrimonio / patrimonio123");
-  console.log("juridicos-consulta / consulta123");
+  console.log("Seed completado.");
 }
 
 main()
