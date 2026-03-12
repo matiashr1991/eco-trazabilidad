@@ -1,7 +1,7 @@
-﻿import Link from "next/link";
-import { CustodyStatus, InternalDispatchStatus, UserRole } from "@prisma/client";
+import Link from "next/link";
+import { CustodyStatus, InternalDispatchStatus } from "@prisma/client";
 import { dispatchInternalAction, receiveInternalAction } from "@/actions/expedientes";
-import { canMoveExpediente, canOperateArea, requireUser } from "@/lib/auth";
+import { canMoveExpediente, canOperateArea, requireUser, hasPermission } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatDate, statusLabel } from "@/lib/format";
 
@@ -45,7 +45,7 @@ export default async function MobileExpedientePage({
   }
 
   const inScope =
-    user.role === UserRole.ADMIN ||
+    hasPermission(user, "MANAGE_PARAMETRICS") ||
     expediente.currentInternalNodeId === user.internalNodeId ||
     expediente.lastInternalNodeId === user.internalNodeId;
 
