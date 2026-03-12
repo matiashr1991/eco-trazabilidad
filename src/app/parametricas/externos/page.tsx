@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { UserRole } from "@prisma/client";
-import { requireUser } from "@/lib/auth";
+import { requireUser, hasPermission } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { upsertExternalNode } from "@/actions/parametrics";
 
@@ -10,7 +9,7 @@ export default async function ExternosPage({
   searchParams: Promise<{ id?: string }>;
 }) {
   const user = await requireUser();
-  if (user.role !== UserRole.ADMIN) return <main>No autorizado</main>;
+  if (!hasPermission(user, "MANAGE_PARAMETRICS")) return <main>No autorizado</main>;
 
   const { id: editId } = await searchParams;
   const nodes = await prisma.externalNode.findMany({ orderBy: { nombre: "asc" } });

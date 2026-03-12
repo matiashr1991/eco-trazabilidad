@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { UserRole } from "@prisma/client";
-import { requireUser } from "@/lib/auth";
+import { requireUser, hasPermission } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { upsertInternalRoute, deleteInternalRoute } from "@/actions/parametrics";
 
 export default async function RutasPage() {
   const user = await requireUser();
-  if (user.role !== UserRole.ADMIN) return <main>No autorizado</main>;
+  if (!hasPermission(user, "MANAGE_PARAMETRICS")) return <main>No autorizado</main>;
 
   const [nodes, routes] = await Promise.all([
     prisma.internalNode.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } }),

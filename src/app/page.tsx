@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { CustodyStatus, InternalDispatchStatus, UserRole } from "@prisma/client";
+import { CustodyStatus, InternalDispatchStatus } from "@prisma/client";
 import { logoutAction } from "@/actions/auth";
-import { requireUser } from "@/lib/auth";
+import { requireUser, hasPermission } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatDate, statusLabel } from "@/lib/format";
 
@@ -20,15 +20,15 @@ export default async function DashboardPage({
   const user = await requireUser();
   const params = await searchParams;
 
-  const whereScope =
-    user.role === UserRole.ADMIN
-      ? {}
-      : {
-          OR: [
-            { currentInternalNodeId: user.internalNodeId },
-            { lastInternalNodeId: user.internalNodeId },
-          ],
-        };
+  const canSeeAll = hasPermission(user, "MANAGE_PARAMETRICS");
+  const whereScope = canSeeAll
+    ? {}
+    : {
+        OR: [
+          { currentInternalNodeId: user.internalNodeId },
+          { lastInternalNodeId: user.internalNodeId },
+        ],
+      };
 
   const [totalActivos, enTransito, fueraEdificio, misExpedientes, recientes, pendientes] = await Promise.all([
     prisma.expediente.count({ where: { activo: true, ...whereScope } }),

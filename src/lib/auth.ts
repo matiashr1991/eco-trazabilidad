@@ -1,4 +1,3 @@
-﻿import { UserRole } from "@prisma/client";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
@@ -10,7 +9,9 @@ export type AuthenticatedUser = {
   id: string;
   nombre: string;
   username: string;
-  role: UserRole;
+  roleId: string | null;
+  roleName: string | null;
+  permissions: string[];
   internalNodeId: string | null;
   internalNodeName: string | null;
 };
@@ -29,7 +30,10 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
 
   const user = await prisma.user.findUnique({
     where: { id: payload.userId, activo: true },
-    include: { internalNode: true },
+    include: { 
+      internalNode: true,
+      role: true
+    },
   });
 
   if (!user) {
@@ -40,10 +44,18 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
     id: user.id,
     nombre: user.nombre,
     username: user.username,
-    role: user.role,
+    roleId: user.roleId,
+    roleName: user.role?.nombre ?? null,
+    permissions: (user.role?.permissions as string[]) ?? [],
     internalNodeId: user.internalNodeId,
     internalNodeName: user.internalNode?.nombre ?? null,
   };
+}
+
+export function hasPermission(user: AuthenticatedUser, permission: string): boolean {
+  // El Administrador siempre tiene todo (fallback por si falla la lista)
+  if (user.roleName === "Administrador") return true;
+  return user.permissions.includes(permission);
 }
 
 export async function requireUser() {
@@ -56,7 +68,7 @@ export async function requireUser() {
 
 export async function requireAdmin() {
   const user = await requireUser();
-  if (user.role !== UserRole.ADMIN) {
+  if (!hasPermission(user, "MANAGE_PARAMETRICS")) {
     redirect("/");
   }
   return user;
@@ -81,7 +93,7 @@ export async function clearSession() {
 }
 
 export function canOperateArea(user: AuthenticatedUser, internalNodeId: string) {
-  if (user.role === UserRole.ADMIN) {
+  if (hasPermission(user, "MANAGE_PARAMETRICS")) {
     return true;
   }
 
@@ -93,10 +105,9 @@ export function canOperateArea(user: AuthenticatedUser, internalNodeId: string) 
 }
 
 export function canCreateExpediente(user: AuthenticatedUser) {
-  return user.role === UserRole.ADMIN || user.role === UserRole.AREA_MANAGER;
+  return hasPermission(user, "CREATE_EXPEDIENTE");
 }
 
 export function canMoveExpediente(user: AuthenticatedUser) {
-  return user.role === UserRole.ADMIN || user.role === UserRole.AREA_MANAGER;
+  return hasPermission(user, "DISPATCH_INTERNAL");
 }
-

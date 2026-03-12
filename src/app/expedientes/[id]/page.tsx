@@ -9,7 +9,7 @@ import {
   receiveInternalAction,
   returnExternalAction,
 } from "@/actions/expedientes";
-import { canMoveExpediente, canOperateArea, requireUser } from "@/lib/auth";
+import { canMoveExpediente, canOperateArea, requireUser, hasPermission } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatDate, statusLabel } from "@/lib/format";
 import { QrLabelActions } from "@/components/qr-label-actions";
@@ -75,7 +75,7 @@ export default async function ExpedienteDetailPage({
   }
 
   const inScope =
-    user.role === UserRole.ADMIN ||
+    hasPermission(user, "MANAGE_PARAMETRICS") ||
     expediente.currentInternalNodeId === user.internalNodeId ||
     expediente.lastInternalNodeId === user.internalNodeId;
 
@@ -106,7 +106,7 @@ export default async function ExpedienteDetailPage({
   const canReturnExternal =
     canMove &&
     expediente.custodyStatus === CustodyStatus.OUT_OF_BUILDING &&
-    (user.role === UserRole.ADMIN || !!user.internalNodeId);
+    (hasPermission(user, "MANAGE_PARAMETRICS") || !!user.internalNodeId);
 
   const availableRoutes = canDispatchInternal
     ? await prisma.internalRoute.findMany({
@@ -265,7 +265,7 @@ export default async function ExpedienteDetailPage({
                     name="toInternalNodeId"
                     required
                     defaultValue={user.internalNodeId ?? ""}
-                    disabled={user.role !== UserRole.ADMIN}
+                    disabled={!hasPermission(user, "MANAGE_PARAMETRICS")}
                   >
                     <option value="">Seleccione área...</option>
                     {internalNodesForReturn.map((node) => (
@@ -349,7 +349,7 @@ export default async function ExpedienteDetailPage({
         </article>
       </section>
 
-      {user.role === UserRole.ADMIN && expediente.custodyStatus !== CustodyStatus.ARCHIVED && (
+      {hasPermission(user, "MANAGE_PARAMETRICS") && expediente.custodyStatus !== CustodyStatus.ARCHIVED && (
         <div style={{ marginTop: "3rem", display: "flex", justifyContent: "flex-end" }}>
           <form action={archiveExpedienteAction}>
             <input type="hidden" name="expedienteId" value={expediente.id} />

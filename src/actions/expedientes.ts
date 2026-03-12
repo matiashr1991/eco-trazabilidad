@@ -1,11 +1,11 @@
 "use server";
 
 import { randomUUID } from "crypto";
-import { CustodyStatus, InternalDispatchStatus, ExternalTransferStatus, AuditAction, UserRole } from "@prisma/client";
+import { CustodyStatus, InternalDispatchStatus, ExternalTransferStatus, AuditAction } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { canCreateExpediente, canMoveExpediente, canOperateArea, requireUser } from "@/lib/auth";
+import { canCreateExpediente, canMoveExpediente, canOperateArea, requireUser, hasPermission } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 async function appBaseUrl() {
@@ -42,42 +42,79 @@ export async function createExpedienteAction(formData: FormData) {
   const descripcionCorta = String(formData.get("descripcionCorta") ?? "").trim();
   const documentTypeId = String(formData.get("documentTypeId") ?? "").trim();
   const requestedNode = String(formData.get("internalNodeId") ?? "").trim();
+  const toInternalNodeId = String(formData.get("toInternalNodeId") ?? "").trim();
 
   if (!numeroExpediente || !documentTypeId) {
     redirect("/expedientes/new?error=Numero+y+tipo+son+obligatorios");
   }
 
-  const internalNodeId = user.role === UserRole.ADMIN ? requestedNode : user.internalNodeId;
+  const internalNodeId = hasPermission(user, "MANAGE_PARAMETRICS") ? requestedNode : user.internalNodeId;
   if (!internalNodeId) {
     redirect("/expedientes/new?error=Debe+existir+un+area+interna+inicial");
+  }
+
+  // Validar ruta si hay despacho inmediato y no es admin
+  if (toInternalNodeId && !hasPermission(user, "MANAGE_PARAMETRICS")) {
+    const route = await prisma.internalRoute.findFirst({
+      where: {
+        fromInternalNodeId: internalNodeId,
+        toInternalNodeId,
+        activo: true
+      }
+    });
+    if (!route) {
+      redirect("/expedientes/new?error=Esa+ruta+de+destino+no+esta+habilitada+para+su+area");
+    }
   }
 
   const id = randomUUID();
   const qrToken = `TRZ-${randomUUID().split("-")[0].toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
   const qrCodeValue = qrToken; // QR content is now JUST the obfuscated token
 
-  const expediente = await prisma.expediente.create({
-    data: {
-      id,
-      numeroExpediente,
-      descripcionCorta,
-      documentTypeId,
-      currentInternalNodeId: internalNodeId,
-      qrToken,
-      qrCodeValue,
-      custodyStatus: CustodyStatus.IN_INTERNAL_NODE,
-    },
-  });
+  const expediente = await prisma.$transaction(async (tx) => {
+    const exp = await tx.expediente.create({
+      data: {
+        id,
+        numeroExpediente,
+        descripcionCorta,
+        documentTypeId,
+        currentInternalNodeId: toInternalNodeId ? null : internalNodeId,
+        lastInternalNodeId: toInternalNodeId ? internalNodeId : null,
+        qrToken,
+        qrCodeValue,
+        custodyStatus: toInternalNodeId ? CustodyStatus.IN_INTERNAL_TRANSIT : CustodyStatus.IN_INTERNAL_NODE,
+      },
+    });
 
-  await prisma.auditLog.create({
-    data: {
-      actorUserId: user.id,
-      expedienteId: expediente.id,
-      entityType: "Expediente",
-      entityId: expediente.id,
-      action: AuditAction.CREATE_EXPEDIENTE,
-      afterJson: expediente,
-    },
+    if (toInternalNodeId) {
+      await tx.internalDispatch.create({
+        data: {
+          expedienteId: exp.id,
+          fromInternalNodeId: internalNodeId,
+          toInternalNodeId,
+          dispatchedByUserId: user.id,
+          dispatchedAt: new Date(),
+          dispatchNote: "Despacho inicial al crear expediente",
+          status: InternalDispatchStatus.PENDING,
+        },
+      });
+    }
+
+    await tx.auditLog.create({
+      data: {
+        actorUserId: user.id,
+        expedienteId: exp.id,
+        entityType: "Expediente",
+        entityId: exp.id,
+        action: AuditAction.CREATE_EXPEDIENTE,
+        afterJson: { 
+          ...exp, 
+          initialDispatch: toInternalNodeId ? { toInternalNodeId } : undefined 
+        } as any,
+      },
+    });
+
+    return exp;
   });
 
   revalidatePath("/");
@@ -372,7 +409,7 @@ export async function returnExternalAction(formData: FormData) {
 
 export async function archiveExpedienteAction(formData: FormData) {
   const user = await requireUser();
-  if (user.role !== UserRole.ADMIN) {
+  if (!hasPermission(user, "MANAGE_PARAMETRICS")) {
     forbiddenRedirect("Solo administrador puede archivar");
   }
 

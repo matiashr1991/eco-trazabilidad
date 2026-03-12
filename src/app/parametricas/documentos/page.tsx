@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { UserRole } from "@prisma/client";
-import { requireUser } from "@/lib/auth";
+import { requireUser, hasPermission } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { upsertDocumentType, toggleDocumentTypeStatus } from "@/actions/parametrics";
 
@@ -10,7 +9,8 @@ export default async function DocumentosPage({
   searchParams: Promise<{ id?: string }>;
 }) {
   const user = await requireUser();
-  if (user.role !== UserRole.ADMIN) {
+
+  if (!hasPermission(user, "MANAGE_PARAMETRICS")) {
     return (
       <main>
         <div className="notice error">No tienes permisos para acceder a esta sección.</div>

@@ -43,6 +43,12 @@ enum AuditAction {
   RETURN_EXTERNAL
   ARCHIVE_EXPEDIENTE
   CORRECT_MOVEMENT
+  CREATE_USER
+  UPDATE_USER
+  TOGGLE_USER_STATUS
+  UPSERT_ROLE
+  DELETE_ROLE
+  UPSERT_PARAMETRIC
 }
 
 model InternalNode {
@@ -82,9 +88,11 @@ model User {
   nombre         String
   username       String             @unique
   passwordHash   String
-  role           UserRole
+  legacyRole     UserRole?          @map("role") // Keep old data mapped to this field
+  roleId         String?
   internalNodeId String?
   activo         Boolean            @default(true)
+  role           Role?              @relation(fields: [roleId], references: [id])
   internalNode   InternalNode?      @relation(fields: [internalNodeId], references: [id])
   dispatchedInts InternalDispatch[] @relation("DispatchByUser")
   receivedInts   InternalDispatch[] @relation("ReceiveByUser")
@@ -93,6 +101,17 @@ model User {
   auditLogs      AuditLog[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  nombre      String   @unique
+  descripcion String?
+  permissions Json     // Proximamente: ["CREATE_EXPEDIENTE", "DISPATCH_INTERNAL", etc]
+  activo      Boolean  @default(true)
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model DocumentType {

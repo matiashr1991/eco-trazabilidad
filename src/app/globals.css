@@ -292,7 +292,7 @@ tr:hover td {
   top: 0;
   height: 100vh;
   z-index: 100;
-  padding: 2rem 1rem;
+  padding: 2rem 1rem 0; /* Reduced bottom padding */
 }
 
 .sidebar-logo {
@@ -308,7 +308,11 @@ tr:hover td {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem; /* Tighter gap */
+  overflow-y: auto;
+  padding-bottom: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
 }
 
 .sidebar-link {
