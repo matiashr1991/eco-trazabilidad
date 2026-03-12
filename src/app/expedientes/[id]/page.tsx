@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { headers } from "next/headers";
 import QRCode from "qrcode";
 import { CustodyStatus, UserRole } from "@prisma/client";
 import {
@@ -64,7 +65,7 @@ export default async function ExpedienteDetailPage({
         take: 15,
       },
     },
-  });
+  }) as any;
 
   if (!expediente) {
     return (
@@ -87,7 +88,12 @@ export default async function ExpedienteDetailPage({
     );
   }
 
-  const qrDataUrl = await QRCode.toDataURL(expediente.qrCodeValue, { width: 400, margin: 2 });
+  const hdrs = await headers();
+  const host = hdrs.get("host") || "localhost:3000";
+  const protocol = hdrs.get("x-forwarded-proto") || "http";
+  const verificationUrl = `${protocol}://${host}/v/${expediente.qrToken}`;
+
+  const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 2 });
 
   const canMove = canMoveExpediente(user);
   const canDispatchInternal =
@@ -196,6 +202,11 @@ export default async function ExpedienteDetailPage({
             </div>
           </div>
           <div style={{ marginTop: "1.5rem", width: "100%" }}>
+            <div style={{ marginBottom: "1rem", textAlign: "center" }}>
+              <Link href={`/v/${expediente.qrToken}`} target="_blank" className="small" style={{ textDecoration: "underline", color: "var(--accent)" }}>
+                Abrir enlace de verificación pública
+              </Link>
+            </div>
             <QrLabelActions expedienteNumero={expediente.numeroExpediente} qrDataUrl={qrDataUrl} />
           </div>
         </article>

@@ -1,20 +1,12 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { createSessionToken, verifySessionToken } from "@/lib/session";
+import { verifySessionToken, createSessionToken } from "@/lib/session";
+import { AuthenticatedUser, hasPermission } from "./permissions";
+
+export * from "./permissions";
 
 const SESSION_COOKIE = "trz_session";
-
-export type AuthenticatedUser = {
-  id: string;
-  nombre: string;
-  username: string;
-  roleId: string | null;
-  roleName: string | null;
-  permissions: string[];
-  internalNodeId: string | null;
-  internalNodeName: string | null;
-};
 
 export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
   const cookieStore = await cookies();
@@ -52,12 +44,6 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
   };
 }
 
-export function hasPermission(user: AuthenticatedUser, permission: string): boolean {
-  // El Administrador siempre tiene todo (fallback por si falla la lista)
-  if (user.roleName === "Administrador") return true;
-  return user.permissions.includes(permission);
-}
-
 export async function requireUser() {
   const user = await getCurrentUser();
   if (!user) {
@@ -90,24 +76,4 @@ export async function establishSession(userId: string) {
 export async function clearSession() {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE);
-}
-
-export function canOperateArea(user: AuthenticatedUser, internalNodeId: string) {
-  if (hasPermission(user, "MANAGE_PARAMETRICS")) {
-    return true;
-  }
-
-  if (!user.internalNodeId) {
-    return false;
-  }
-
-  return user.internalNodeId === internalNodeId;
-}
-
-export function canCreateExpediente(user: AuthenticatedUser) {
-  return hasPermission(user, "CREATE_EXPEDIENTE");
-}
-
-export function canMoveExpediente(user: AuthenticatedUser) {
-  return hasPermission(user, "DISPATCH_INTERNAL");
 }

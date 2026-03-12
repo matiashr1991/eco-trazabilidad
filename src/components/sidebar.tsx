@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { AuthenticatedUser, hasPermission } from "@/lib/auth";
+import { AuthenticatedUser, hasPermission } from "@/lib/permissions";
 import { logoutAction } from "@/actions/auth";
 import { 
   LayoutDashboard, 
