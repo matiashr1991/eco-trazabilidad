@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    networks:
+      - matdevnet
+    volumes:
+      - trazabilidad_db_data:/var/lib/postgresql/data
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+
+  app:
+    image: trazabilidad_app:${APP_VERSION}
+    environment:
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public"
+      NEXTAUTH_URL: "${APP_URL}"
+      NEXTAUTH_SECRET: "${AUTH_SECRET}"
+    networks:
+      - matdevnet
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=matdevnet"
+        - "traefik.http.routers.trazabilidad.rule=Host(`${APP_DOMAIN}`)"
+        - "traefik.http.routers.trazabilidad.entrypoints=websecure"
+        - "traefik.http.routers.trazabilidad.tls=true"
+        - "traefik.http.routers.trazabilidad.tls.certresolver=letsencryptresolver"
+        - "traefik.http.services.trazabilidad.loadbalancer.server.port=3000"
+
+volumes:
+  trazabilidad_db_data:
+
+networks:
+  matdevnet:
+    external: true

@@ -1,0 +1,214 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  AREA_MANAGER
+  AREA_OPERATOR
+}
+
+enum CustodyStatus {
+  IN_INTERNAL_NODE
+  IN_INTERNAL_TRANSIT
+  OUT_OF_BUILDING
+  ARCHIVED
+}
+
+enum InternalDispatchStatus {
+  PENDING
+  RECEIVED
+  CORRECTED
+  CANCELED
+}
+
+enum ExternalTransferStatus {
+  OUT
+  RETURNED
+  CORRECTED
+  CANCELED
+}
+
+enum AuditAction {
+  LOGIN
+  CREATE_EXPEDIENTE
+  DISPATCH_INTERNAL
+  RECEIVE_INTERNAL
+  DISPATCH_EXTERNAL
+  RETURN_EXTERNAL
+  ARCHIVE_EXPEDIENTE
+  CORRECT_MOVEMENT
+}
+
+model InternalNode {
+  id             String             @id @default(cuid())
+  nombre         String             @unique
+  planta         String?
+  edificio       String?
+  activo         Boolean            @default(true)
+  users          User[]
+  currentIn      Expediente[]       @relation("CurrentInternalNode")
+  lastOut        Expediente[]       @relation("LastInternalNode")
+  dispatchFrom   InternalDispatch[] @relation("DispatchFromInternalNode")
+  dispatchTo     InternalDispatch[] @relation("DispatchToInternalNode")
+  externalOut    ExternalTransfer[] @relation("ExternalFromInternalNode")
+  externalReturn ExternalTransfer[] @relation("ExternalReturnToInternalNode")
+  routeFrom      InternalRoute[]    @relation("RouteFromNode")
+  routeTo        InternalRoute[]    @relation("RouteToNode")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+}
+
+model ExternalNode {
+  id                  String             @id @default(cuid())
+  nombre              String             @unique
+  descripcion         String?
+  edificioDependencia String?
+  direccionOpcional   String?
+  activo              Boolean            @default(true)
+  transferTo          ExternalTransfer[] @relation("ExternalToNode")
+  currentExpedientes  Expediente[]       @relation("CurrentExternalNode")
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+}
+
+model User {
+  id             String             @id @default(cuid())
+  nombre         String
+  username       String             @unique
+  passwordHash   String
+  role           UserRole
+  internalNodeId String?
+  activo         Boolean            @default(true)
+  internalNode   InternalNode?      @relation(fields: [internalNodeId], references: [id])
+  dispatchedInts InternalDispatch[] @relation("DispatchByUser")
+  receivedInts   InternalDispatch[] @relation("ReceiveByUser")
+  dispatchedExts ExternalTransfer[] @relation("ExternalDispatchByUser")
+  returnedExts   ExternalTransfer[] @relation("ExternalReturnByUser")
+  auditLogs      AuditLog[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+}
+
+model DocumentType {
+  id          String       @id @default(cuid())
+  nombre      String       @unique
+  descripcion String?
+  activo      Boolean      @default(true)
+  expedientes Expediente[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Expediente {
+  id                    String             @id @default(cuid())
+  numeroExpediente      String             @unique
+  descripcionCorta      String?
+  custodyStatus         CustodyStatus
+  documentTypeId        String
+  currentInternalNodeId String?
+  currentExternalNodeId String?
+  lastInternalNodeId    String?
+  qrCodeValue           String             @unique
+  qrToken               String?            @unique
+  activo                Boolean            @default(true)
+  archivedAt            DateTime?
+  documentType          DocumentType       @relation(fields: [documentTypeId], references: [id])
+  currentInternalNode   InternalNode?      @relation("CurrentInternalNode", fields: [currentInternalNodeId], references: [id])
+  currentExternalNode   ExternalNode?      @relation("CurrentExternalNode", fields: [currentExternalNodeId], references: [id])
+  lastInternalNode      InternalNode?      @relation("LastInternalNode", fields: [lastInternalNodeId], references: [id])
+  internalDispatches    InternalDispatch[]
+  externalTransfers     ExternalTransfer[]
+  auditLogs             AuditLog[]
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@index([custodyStatus])
+  @@index([currentInternalNodeId])
+  @@index([currentExternalNodeId])
+}
+
+model InternalDispatch {
+  id                 String                 @id @default(cuid())
+  expedienteId       String
+  fromInternalNodeId String
+  toInternalNodeId   String
+  dispatchedByUserId String
+  dispatchedAt       DateTime
+  dispatchNote       String?
+  status             InternalDispatchStatus @default(PENDING)
+  receivedByUserId   String?
+  receivedAt         DateTime?
+  receiveNote        String?
+  expediente         Expediente             @relation(fields: [expedienteId], references: [id])
+  fromInternalNode   InternalNode           @relation("DispatchFromInternalNode", fields: [fromInternalNodeId], references: [id])
+  toInternalNode     InternalNode           @relation("DispatchToInternalNode", fields: [toInternalNodeId], references: [id])
+  dispatchedBy       User                   @relation("DispatchByUser", fields: [dispatchedByUserId], references: [id])
+  receivedBy         User?                  @relation("ReceiveByUser", fields: [receivedByUserId], references: [id])
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  @@index([expedienteId, status])
+}
+
+model ExternalTransfer {
+  id                       String                 @id @default(cuid())
+  expedienteId             String
+  fromInternalNodeId       String
+  toExternalNodeId         String
+  dispatchedByUserId       String
+  dispatchedAt             DateTime
+  dispatchNote             String?
+  status                   ExternalTransferStatus @default(OUT)
+  returnedToInternalNodeId String?
+  returnedByUserId         String?
+  returnedAt               DateTime?
+  returnNote               String?
+  expediente               Expediente             @relation(fields: [expedienteId], references: [id])
+  fromInternalNode         InternalNode           @relation("ExternalFromInternalNode", fields: [fromInternalNodeId], references: [id])
+  toExternalNode           ExternalNode           @relation("ExternalToNode", fields: [toExternalNodeId], references: [id])
+  dispatchedBy             User                   @relation("ExternalDispatchByUser", fields: [dispatchedByUserId], references: [id])
+  returnedToInternalNode   InternalNode?          @relation("ExternalReturnToInternalNode", fields: [returnedToInternalNodeId], references: [id])
+  returnedBy               User?                  @relation("ExternalReturnByUser", fields: [returnedByUserId], references: [id])
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+
+  @@index([expedienteId, status])
+}
+
+model InternalRoute {
+  id                 String       @id @default(cuid())
+  fromInternalNodeId String
+  toInternalNodeId   String
+  activo             Boolean      @default(true)
+  orden              Int          @default(0)
+  fromInternalNode   InternalNode @relation("RouteFromNode", fields: [fromInternalNodeId], references: [id])
+  toInternalNode     InternalNode @relation("RouteToNode", fields: [toInternalNodeId], references: [id])
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@unique([fromInternalNodeId, toInternalNodeId])
+}
+
+model AuditLog {
+  id           String      @id @default(cuid())
+  actorUserId  String
+  expedienteId String?
+  entityType   String
+  entityId     String
+  action       AuditAction
+  beforeJson   Json?
+  afterJson    Json?
+  occurredAt   DateTime    @default(now())
+  actor        User        @relation(fields: [actorUserId], references: [id])
+  expediente   Expediente? @relation(fields: [expedienteId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([occurredAt])
+}
+

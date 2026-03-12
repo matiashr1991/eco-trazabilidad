@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+﻿# Subsistema de Trazabilidad de Expedientes Fisicos (MVP)
 
-## Getting Started
+Aplicacion web en Next.js + PostgreSQL para rastrear custodia fisica de expedientes con flujo interno y salidas externas.
 
-First, run the development server:
+## Estado actual
+
+Incluye:
+- autenticacion por usuario/contrasena y sesion por cookie segura;
+- RBAC basico (`ADMIN`, `AREA_MANAGER`, `AREA_OPERATOR`);
+- alta de expediente con QR unico;
+- pantalla de escaneo QR con camara (`/scan`);
+- modo operativo movil simplificado (`/mobile`) para recibir/despachar;
+- despacho interno y recepcion interna;
+- salida externa y reingreso;
+- archivado (solo admin);
+- tablero con metricas operativas y pendientes;
+- historial de movimientos y auditoria reciente por expediente.
+
+## Requisitos
+
+- Node.js 20+
+- PostgreSQL 14+
+
+## Configuracion local
+
+1. Instalar dependencias:
+
+```bash
+npm install
+```
+
+2. Crear `.env` a partir de `.env.example`.
+
+3. Generar cliente Prisma:
+
+```bash
+npm run prisma:generate
+```
+
+4. Crear tablas:
+
+```bash
+npm run prisma:migrate -- --name init
+```
+
+5. Cargar datos iniciales:
+
+```bash
+npm run prisma:seed
+```
+
+6. Levantar aplicacion:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrir `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Uso desde celular (dev)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Levantar el server escuchando red local:
 
-## Learn More
+```bash
+npm run dev -- --hostname 0.0.0.0 --port 3000
+```
 
-To learn more about Next.js, take a look at the following resources:
+2. En la PC obtener IP local (ej. `192.168.0.25`) y abrir desde el celu:
+   `http://192.168.0.25:3000`
+3. El escaneo en `/scan` requiere permisos de camara del navegador. En algunos navegadores moviles puede requerir HTTPS.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Usuarios de prueba
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `admin` / `admin123`
+- `dga` / `dga123`
+- `patrimonio` / `patrimonio123`
+- `juridicos-consulta` / `consulta123`
 
-## Deploy on Vercel
+## Estructura relevante
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `prisma/schema.prisma`: modelo de datos.
+- `prisma/seed.mjs`: seed inicial de nodos, rutas, tipos y usuarios.
+- `src/actions/`: acciones de login y movimientos.
+- `src/lib/auth.ts`: sesion, permisos y helpers RBAC.
+- `src/app/`: dashboard, login, alta y detalle de expediente.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Pendientes MVP+
+
+- escaneo QR con camara desde navegador;
+- correccion administrativa asistida;
+- alertas de demora configurables;
+- reportes exportables.
+
