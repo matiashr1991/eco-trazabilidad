@@ -10,6 +10,39 @@ function hashPassword(plainText) {
 }
 
 async function main() {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+  const adminRole = await prisma.role.upsert({
+    where: { nombre: "Administrador" },
+    update: {},
+    create: {
+      nombre: "Administrador",
+      descripcion: "Acceso total al sistema",
+      permissions: [
+        "CREATE_EXPEDIENTE",
+        "DISPATCH_INTERNAL",
+        "RECEIVE_INTERNAL",
+        "MANAGE_EXTERNAL",
+        "MANAGE_PARAMETRICS",
+        "MANAGE_USERS",
+      ],
+    },
+  });
+
+  const operatorRole = await prisma.role.upsert({
+    where: { nombre: "Operador" },
+    update: {},
+    create: {
+      nombre: "Operador",
+      descripcion: "Operaciones básicas de trazabilidad",
+      permissions: [
+        "CREATE_EXPEDIENTE",
+        "DISPATCH_INTERNAL",
+        "RECEIVE_INTERNAL",
+      ],
+    },
+  });
+
   const internalNodesData = [
     { nombre: "Direccion General Administrativa", planta: "Planta Baja", edificio: "Principal" },
     { nombre: "Patrimonio", planta: "1er Piso", edificio: "Principal" },
@@ -55,28 +88,32 @@ async function main() {
       nombre: "Admin Global",
       username: "admin",
       password: "admin123",
-      role: UserRole.ADMIN,
+      legacyRole: UserRole.ADMIN,
+      roleId: adminRole.id,
       internalNodeId: null,
     },
     {
       nombre: "Responsable DGA",
       username: "dga",
       password: "dga123",
-      role: UserRole.AREA_MANAGER,
+      legacyRole: UserRole.AREA_MANAGER,
+      roleId: operatorRole.id,
       internalNodeId: createdNodes["Direccion General Administrativa"].id,
     },
     {
       nombre: "Responsable Patrimonio",
       username: "patrimonio",
       password: "patrimonio123",
-      role: UserRole.AREA_MANAGER,
+      legacyRole: UserRole.AREA_MANAGER,
+      roleId: operatorRole.id,
       internalNodeId: createdNodes["Patrimonio"].id,
     },
     {
       nombre: "Consulta Juridicos",
       username: "juridicos-consulta",
       password: "consulta123",
-      role: UserRole.AREA_OPERATOR,
+      legacyRole: UserRole.AREA_OPERATOR,
+      roleId: operatorRole.id,
       internalNodeId: createdNodes["Juridicos"].id,
     },
   ];
@@ -86,7 +123,8 @@ async function main() {
       where: { username: userData.username },
       update: {
         nombre: userData.nombre,
-        role: userData.role,
+        legacyRole: userData.legacyRole,
+        roleId: userData.roleId,
         internalNodeId: userData.internalNodeId,
         activo: true,
       },
@@ -94,7 +132,8 @@ async function main() {
         nombre: userData.nombre,
         username: userData.username,
         passwordHash: hashPassword(userData.password),
-        role: userData.role,
+        legacyRole: userData.legacyRole,
+        roleId: userData.roleId,
         internalNodeId: userData.internalNodeId,
       },
     });
@@ -136,7 +175,7 @@ async function main() {
         custodyStatus: CustodyStatus.IN_INTERNAL_NODE,
         currentInternalNodeId: createdNodes["Direccion General Administrativa"].id,
         lastInternalNodeId: createdNodes["Direccion General Administrativa"].id,
-        qrCodeValue: "http://localhost:3000/expedientes/demo-compra-2026-001",
+        qrCodeValue: `${appUrl}/expedientes/demo-compra-2026-001`,
       },
     });
   }
