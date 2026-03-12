@@ -296,12 +296,15 @@ tr:hover td {
 }
 
 .sidebar-logo {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: var(--accent);
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
   padding: 0 1rem;
   letter-spacing: -0.04em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .sidebar-nav {
@@ -319,10 +322,13 @@ tr:hover td {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.875rem 1rem;
+  padding: 0.625rem 0.875rem; /* More compact */
   border-radius: var(--radius-md);
   font-weight: 500;
   color: var(--muted);
+  font-size: 0.9375rem; /* Slightly smaller */
+  transition: all 0.2s ease;
+  user-select: none;
 }
 
 .sidebar-link:hover {
@@ -331,20 +337,60 @@ tr:hover td {
 }
 
 .sidebar-link.active {
-  background: var(--accent);
-  color: white;
-  box-shadow: 0 4px 6px -1px rgba(90, 146, 112, 0.2);
+  background: rgba(90, 146, 112, 0.08); /* More discreet background */
+  color: var(--accent);
+  font-weight: 600;
+  position: relative;
 }
 
-.sidebar-link[data-variant="danger"]:hover {
-  background: #fee2e2;
-  color: var(--danger);
+.sidebar-link.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 3px;
+  height: 60%;
+  background: var(--accent);
+  border-radius: 0 4px 4px 0;
+}
+
+.sidebar-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.5rem;
+}
+
+.sidebar-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.75rem 1rem 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.sidebar-group-header:hover {
+  color: var(--accent);
+}
+
+.sidebar-group-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding-left: 0.5rem;
 }
 
 .sidebar-profile {
   margin-top: auto;
-  padding: 1.5rem 1rem;
+  padding: 1rem;
   border-top: 1px solid var(--line);
+  background: white;
 }
 
 .sidebar-profile-info {

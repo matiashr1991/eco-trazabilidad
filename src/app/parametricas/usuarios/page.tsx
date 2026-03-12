@@ -71,14 +71,14 @@ export default async function UsuariosPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
                 <select name="roleId" required className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none transition-all">
                   <option value="">Seleccionar rol...</option>
-                  {roles.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                  {roles.map((r: any) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Área Asignada</label>
                 <select name="internalNodeId" className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none transition-all">
                   <option value="">Sin área (Acceso Global)</option>
-                  {areas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+                  {areas.map((a: any) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
                 </select>
               </div>
 
