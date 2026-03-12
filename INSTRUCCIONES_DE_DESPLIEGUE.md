@@ -1,36 +1,49 @@
 # Instrucciones de Despliegue (Docker Swarm + Traefik)
 
-Este proyecto está configurado para desplegarse en un cluster de **Docker Swarm** utilizando **Traefik** como Reverse Proxy.
+Este proyecto está configurado para desplegarse en un cluster de **Docker Swarm** en tu VPS (**72.61.134.65**).
 
-## 1. Requisitos Previos
-- Docker Swarm inicializado (`docker swarm init`).
-- Red externa `matdevnet` creada (`docker network create --driver overlay matdevnet`).
-- Traefik configurado en el cluster escuchando en los entrypoints `web` y `websecure`.
+## 1. Requisitos Previos en el VPS
+- Docker Swarm inicializado: `docker swarm init` (si no lo está).
+- Red externa creada: `docker network create --driver overlay matdevnet`.
+- Tener Traefik configurado (si usas la infraestructura estándar de matdev).
 
-## 2. Configuración
-1. Copia el archivo `stack.env` y ajusta los valores (dominios, contraseñas, secretos):
+## 2. Configuración de Variables
+Asegúrate de editar el archivo `stack.env` en el servidor con los datos reales:
+- `APP_DOMAIN`: `trazabilidad.[tu-dominio].com` (según tu registro A).
+- `APP_URL`: `https://trazabilidad.[tu-dominio].com`
+- `NEXT_PUBLIC_APP_URL`: Igual que `APP_URL`
+- `DB_PASSWORD`: Una contraseña segura.
+- `AUTH_SECRET`: Generar con `openssl rand -base64 32`.
+
+## 3. Despliegue del Stack
+Desde la carpeta raíz del proyecto en el VPS:
+
+1. **Construir la imagen localmente**:
    ```bash
-   cp stack.env.example stack.env # Si existiera un .example
+   docker build -t trazabilidad_app:latest .
    ```
-2. Asegúrate de que `AUTH_SECRET` sea una cadena aleatoria segura.
 
-## 3. Construcción de la Imagen
-Construye la imagen de la aplicación (reemplaza `v1.0.0` por la versión deseada):
-```bash
-docker build -t trazabilidad_app:v1.0.0 .
-```
+2. **Lanzar el stack**:
+   ```bash
+   docker stack deploy -c stack.yml --env-file stack.env trazabilidad
+   ```
 
-## 4. Despliegue
-Para desplegar el stack completo (Base de Datos + App):
-```bash
-docker stack deploy -c stack.yml --env-file stack.env trazabilidad
-```
+## 4. Inicialización de la Base de Datos (Muy Importante)
+Una vez que los contenedores estén corriendo, debes ejecutar las migraciones y el seed para configurar los roles y permisos:
 
-## 5. Persistencia
-La base de datos utiliza un volumen nombrado `trazabilidad_db_data`. Docker Swarm se encargará de mantener este volumen en el nodo donde corra el servicio `db`. En un entorno multi-nodo, se recomienda usar un driver de volumen compartido (como NFS o GlusterFS) o fijar el servicio `db` a un nodo específico mediante etiquetas.
+1. **Obtener el ID del contenedor de la app**:
+   ```bash
+   docker ps | grep trazabilidad_app
+   ```
 
-## 6. Monitoreo y Logs
+2. **Ejecutar migraciones y seed**:
+   ```bash
+   docker exec -it [ID_CONTENEDOR] npx prisma migrate deploy
+   docker exec -it [ID_CONTENEDOR] npm run prisma:seed
+   ```
+
+## 5. Monitoreo
+Si algo no carga, revisa los logs:
 ```bash
 docker service logs -f trazabilidad_app
-docker service logs -f trazabilidad_db
 ```
