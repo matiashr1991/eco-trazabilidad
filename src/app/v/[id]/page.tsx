@@ -110,7 +110,7 @@ export default async function PublicVerificationPage({
               </tr>
             </thead>
             <tbody>
-              {expediente.internalDispatches.map((mov) => (
+              {expediente.internalDispatches.map((mov: any) => (
                 <tr key={`int-${mov.id}`}>
                   <td>
                     <span className={mov.status === "RECEIVED" ? "badge ok" : "badge warn"}>
@@ -123,7 +123,7 @@ export default async function PublicVerificationPage({
                   <td>{formatDate(mov.receivedAt ?? mov.dispatchedAt)}</td>
                 </tr>
               ))}
-              {expediente.externalTransfers.map((mov) => (
+              {expediente.externalTransfers.map((mov: any) => (
                 <tr key={`ext-${mov.id}`}>
                   <td>
                     <span className={mov.status === "RETURNED" ? "badge ok" : "badge danger"}>
